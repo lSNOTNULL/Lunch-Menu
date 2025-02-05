@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- 1단계 : (자동 저장 없이) DOM 표현하는 개념 -->
+    <form id="controller">
+      <textarea name="textData"></textarea>
+      <button>등록</button>
+    </form>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+      const form = document.querySelector("#controller");
+      // https://ko.javascript.info/proxy
+      const data = new Proxy([], {
+        // proxy 객체, 키, 값 -> 객체에 키를 통해서 값을 변환하는 것이 일어나면 일단 그걸 처리하고
+        // 배열이 들어오게 되면, 그 배열 전체가 target 되는 것.
+        set(target, property, value) {
+          target[property] = value; // ...
+          updateContainer(); // data 배열에 데이터 추가/수정 시 반응
+          return true; // 성공/실패 true/false.
+        },
+      });
+      function updateContainer() {
+        container.innerHTML = ""; // 배열에 있는 것을 일괄 추가하기 전에 밀어버리기
+        for (const d of data) {
+          const tmp = document.createElement("div"); // temp...
+          //   tmp.textContent = displayData.text;
+          tmp.textContent = d.text;
+          container.appendChild(tmp);
+        }
+      }
+      function handleForm(event) {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const displayData = { text: formData.get("textData") };
+        console.log(displayData);
+        data.push(displayData);
+        // 🚨
+        // const tmp = document.createElement("div"); // temp...
+        // tmp.textContent = displayData.text;
+        // container.appendChild(tmp);
+      }
+      //   form.addEventListener("click", handleForm); // 🚨
+      form.addEventListener("submit", handleForm); // form을 쓸거면...
+    </script>
+  </body>
+</html>

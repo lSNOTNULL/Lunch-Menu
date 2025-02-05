@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- 2단계 : 자동 저장 및 삭제 버튼 -->
+    <header>
+      <button id="resetButton">저장된 데이터 리셋</button>
+    </header>
+    <form id="controller">
+      <textarea name="textData"></textarea>
+      <button>등록</button>
+    </form>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+      const form = document.querySelector("#controller");
+      const resetButton = document.querySelector("#resetButton");
+      resetButton.addEventListener("click", () => (data.length = 0));
+      const data = new Proxy([], {
+        set(target, property, value) {
+          target[property] = value;
+          updateContainer();
+          updateStorage(target);
+          return true;
+        },
+      });
+      function onMounted() {
+        data.push(...(JSON.parse(localStorage.getItem("myData")) ?? []));
+      }
+      onMounted();
+
+      function updateContainer() {
+        container.innerHTML = "";
+        for (const d of data) {
+          const tmp = document.createElement("div");
+          tmp.textContent = d.text;
+          const deleteButton = document.createElement("button");
+          deleteButton.textContent = "삭제";
+          deleteButton.addEventListener("click", () => {
+            const fillterd = data.filter((value) => value.id !== d.id);
+            data.length = 0;
+            data.push(...fillterd);
+          });
+          tmp.appendChild(deleteButton);
+          container.appendChild(tmp);
+        }
+      }
+
+      function updateStorage(target) {
+        console.log(target);
+        localStorage.setItem("myData", JSON.stringify(target));
+        console.log(localStorage.getItem("myData"));
+      }
+      function handleForm(event) {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const displayData = { id: Date.now(), text: formData.get("textData") };
+        data.push(displayData);
+      }
+      form.addEventListener("submit", handleForm);
+    </script>
+  </body>
+</html>

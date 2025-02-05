@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- 3단계 : LLM API를 써서 작성 데이터에 대한 추천을 생성하고, secure coding 처리 -->
+    <header>
+      <button id="resetButton">저장된 데이터 리셋</button>
+    </header>
+    <form id="controller">
+      <label>
+        모델 :
+        <select name="modelOption">
+          <option value="1">gemini-1.5-flash</option>
+          <option value="2">deepseek-r1</option>
+        </select>
+      </label>
+      <textarea name="textData"></textarea>
+      <button>등록</button>
+    </form>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+      const form = document.querySelector("#controller");
+      const resetButton = document.querySelector("#resetButton");
+      resetButton.addEventListener("click", () => (data.length = 0));
+      const data = new Proxy([], {
+        set(target, property, value) {
+          target[property] = value;
+          updateContainer();
+          updateStorage(target);
+          return true;
+        },
+      });
+      function onMounted() {
+        data.push(...(JSON.parse(localStorage.getItem("myData")) ?? []));
+      }
+      onMounted();
+
+      function updateContainer() {
+        container.innerHTML = "";
+        for (const d of data) {
+          const tmp = document.createElement("div");
+          tmp.textContent = d.text;
+          const deleteButton = document.createElement("button");
+          deleteButton.textContent = "삭제";
+          deleteButton.addEventListener("click", () => {
+            const fillterd = data.filter((value) => value.id !== d.id);
+            data.length = 0;
+            data.push(...fillterd);
+          });
+          // LLM 응답
+          if (d.reply) {
+            const box = document.createElement("div");
+            const reply = document.createElement("code");
+            box.appendChild(reply);
+            // CSS in JS, Styled Component
+            box.style.padding = "12px";
+            box.style.margin = "4px";
+            box.style.backgroundColor = "beige";
+            box.style.border = "1px solid black";
+            reply.textContent = d.reply;
+            tmp.appendChild(box);
+          }
+          tmp.appendChild(deleteButton);
+          container.appendChild(tmp);
+        }
+      }
+
+      function updateStorage(target) {
+        // console.log(target);
+        localStorage.setItem("myData", JSON.stringify(target));
+        // console.log(localStorage.getItem("myData"));
+      }
+      async function handleForm(event) {
+        // await를 쓰려면 async로 감싸져아함
+        event.preventDefault();
+        const formData = new FormData(form);
+        // 이쯤에서 그냥 추천 받으면 좋지 않을까?
+        const text = formData.get("textData");
+        let reply;
+        switch (formData.get("modelOption")) {
+          case "1":
+            reply = `👬 Gemini : ${await makeReply(text)}`;
+            break;
+          case "2":
+            reply = `👀 DeepSeek : ${await makeReply2(text)}`;
+            break;
+          default:
+            alert("비정상적인 접근!");
+            throw new Error("알 수 없는 에러!");
+            break;
+        }
+        // const reply = await makeReply(text); // 네트워크? 데이터 통신?
+        // const reply = await makeReply2(text); // 모델 교체
+        const displayData = {
+          id: Date.now(),
+          text,
+          reply, // 단축 문법 중 하나 (property = key의 이름과 value에 들어가는 변수명이 같으면 단축 가능)
+        };
+        data.push(displayData);
+      }
+      // 1차 gemini
+      async function makeReply(text) {
+        // https://aistudio.google.com/
+        const GEMINI_API_KEY = "AIzaSyDaUBypQPdvPUuQrqqd3qelIQcqtYc6Zto";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        const response = await fetch(url, {
+          method: "POST", // 소중한 편지를 품에 안고 가는 것.
+          // fetch는 단순한 툴이라서 직렬화를 해줘야함
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `너는 20년 경력의 메뉴 추천 전문가야. {${text}}의 메시지를 바탕으로, 점심 메뉴를 추천해주고, 50자 이내에 평문으로 작성해줘.`,
+                  },
+                ], // 생략할 수 있다 -> 프로퍼티 이름과 밸류 변수이름이 같으면...
+              },
+            ],
+          }),
+          headers: {
+            "Content-Type": "application/json", // JSON 응답을 주세요
+          },
+        });
+        const json = await response.json(); // JSON.parse
+        // console.log(json);
+        // return JSON.stringify(json);
+        return json.candidates[0].content.parts[0].text;
+      }
+      // 2차 deepseek
+      async function makeReply2(
+        content,
+        model = "deepseek-r1-distill-llama-70b"
+      ) {
+        // deepseek-r1-distill-llama-70b
+        /*
+          curl -X POST "https://api.groq.com/openai/v1/chat/completions" \
+              -H "Authorization: Bearer $GROQ_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"messages": [{"role": "user", "content": "Explain the importance of fast language models"}], "model": "llama-3.3-70b-versatile"}'
+          */
+        const GROQ_API_KEY =
+          "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";
+        const url = "https://api.groq.com/openai/v1/chat/completions";
+        const response = await fetch(url, {
+          method: "POST", // 소중한 편지를 품에 안고 가는 것.
+          // fetch는 단순한 툴이라서 직렬화를 해줘야함
+          body: JSON.stringify({
+            messages: [
+              {
+                role: "user",
+                content: `너는 20년 경력의 메뉴 추천 전문가야. {${content}}의 메시지를 바탕으로, 점심 메뉴를 추천해주고, 50자 이내에 평문으로 작성해줘. 결과는 한글로 작성해줘.`, // 단축을 위해서 각각의 api가 형태에 맞춰서
+                // 변수명이나 패러미터 명을 바꾸는 것도...
+              },
+            ],
+            model,
+          }),
+          headers: {
+            Authorization: `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json", // JSON 응답을 주세요
+          },
+        });
+        const json = await response.json(); // JSON.parse
+        // console.log(json);
+        // return JSON.stringify(json);
+        // return json.choices[0].message.content;
+        // split -> 특정한 문자패턴을 기준으로 배열을 만들어 토큰(개별 원소)화
+        return json.choices[0].message.content.split("</think>")[1].trim(); // 앞뒤에 공백을 잘라줌.
+      }
+      form.addEventListener("submit", handleForm);
+    </script>
+  </body>
+</html>

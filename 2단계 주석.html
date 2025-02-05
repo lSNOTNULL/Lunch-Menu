@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- 2단계 : 자동 저장 및 삭제 버튼 -->
+    <header>
+      <!-- 리셋 버튼: 저장된 데이터를 지우는 버튼 -->
+      <button id="resetButton">저장된 데이터 리셋</button>
+    </header>
+    <form id="controller">
+      <!-- 사용자로부터 데이터를 입력받기 위한 텍스트 영역 -->
+      <textarea name="textData"></textarea>
+      <!-- 데이터를 등록하는 버튼 -->
+      <button>등록</button>
+    </form>
+    <div id="container"></div>
+    <!-- 저장된 데이터를 보여줄 영역 -->
+
+    <script>
+      // HTML 요소를 변수에 할당
+      const container = document.querySelector("#container"); // 데이터를 출력할 영역
+      const form = document.querySelector("#controller"); // 폼 영역 (입력란 및 등록 버튼 포함)
+
+      // 데이터를 관리할 배열을 Proxy로 감쌈
+      const data = new Proxy([], {
+        // Proxy의 set 메서드: 배열에 데이터가 추가될 때마다 호출
+        set(target, property, value) {
+          target[property] = value; // 데이터 배열에 값을 추가
+          updateContainer(); // 화면 업데이트
+          updateStorage(target); // 로컬 저장소에 데이터 저장
+          return true; // 반드시 true 반환
+        },
+      });
+
+      // 페이지가 로드될 때 자동으로 실행되는 함수
+      function onMounted() {
+        // localStorage에 저장된 데이터를 불러와서 data 배열에 추가
+        // 저장된 데이터가 없다면 빈 배열을 사용
+        data.push(...(JSON.parse(localStorage.getItem("myData")) ?? []));
+      }
+
+      // onMounted 함수 실행 (페이지가 로드될 때 호출)
+      onMounted();
+
+      // 화면에 데이터를 표시하는 함수
+      function updateContainer() {
+        container.innerHTML = ""; // 기존의 데이터를 지움
+        for (const d of data) {
+          const tmp = document.createElement("div"); // 새로운 div 요소 생성
+          tmp.textContent = d.text; // 각 데이터의 텍스트를 div에 추가
+          container.appendChild(tmp); // div를 container에 추가
+        }
+      }
+
+      // 로컬 저장소에 데이터를 저장하는 함수
+      function updateStorage(target) {
+        // 배열을 JSON 문자열로 변환하여 localStorage에 저장
+        localStorage.setItem("myData", JSON.stringify(target));
+        console.log(localStorage.getItem("myData")); // 로컬 저장소에 저장된 데이터 확인용 로그
+      }
+
+      // 폼이 제출될 때 실행되는 함수
+      function handleForm(event) {
+        event.preventDefault(); // 폼이 기본적으로 제출되지 않도록 막음
+        const formData = new FormData(form); // 폼 데이터를 가져옴
+        const displayData = { text: formData.get("textData") }; // 폼에서 입력된 텍스트를 객체로 만듦
+        data.push(displayData); // 데이터 배열에 새로운 텍스트 추가
+      }
+
+      // 폼 제출 시 handleForm 함수가 실행되도록 이벤트 리스너 추가
+      form.addEventListener("submit", handleForm);
+    </script>
+  </body>
+</html>
