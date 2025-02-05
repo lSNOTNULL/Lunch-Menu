@@ -106,7 +106,7 @@
       // 1차 gemini
       async function makeReply(text) {
         // https://aistudio.google.com/
-        const GEMINI_API_KEY = "AIzaSyDaUBypQPdvPUuQrqqd3qelIQcqtYc6Zto";
+        const GEMINI_API_KEY = ""; // Private처리
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
         const response = await fetch(url, {
           method: "POST", // 소중한 편지를 품에 안고 가는 것.
@@ -144,7 +144,7 @@
               -d '{"messages": [{"role": "user", "content": "Explain the importance of fast language models"}], "model": "llama-3.3-70b-versatile"}'
           */
         const GROQ_API_KEY =
-          "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";
+          ""; // private처리
         const url = "https://api.groq.com/openai/v1/chat/completions";
         const response = await fetch(url, {
           method: "POST", // 소중한 편지를 품에 안고 가는 것.
